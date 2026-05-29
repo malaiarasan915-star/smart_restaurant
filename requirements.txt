@@ -1,7 +1,8 @@
 django>=5.0
 djangorestframework
 channels
-channels-redis
+daphne
+gunicorn
 qrcode[pil]
 razorpay
 python-dotenv
@@ -9,3 +10,4 @@ Pillow
 django-cors-headers
 whitenoise
 psycopg2-binary
+dj-database-url
