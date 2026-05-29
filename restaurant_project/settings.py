@@ -1,5 +1,4 @@
 import os
-import dj_database_url
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -78,9 +77,10 @@ WSGI_APPLICATION = 'restaurant_project.wsgi.application'
 ASGI_APPLICATION = 'restaurant_project.asgi.application'
 
 # ─── Database ────────────────────────────────────────────────────────────────
-# Uses PostgreSQL on Render (DATABASE_URL env var), falls back to SQLite locally
+# Database — PostgreSQL on Render (DATABASE_URL), SQLite locally
 DATABASE_URL = os.getenv('DATABASE_URL')
 if DATABASE_URL:
+    import dj_database_url
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
