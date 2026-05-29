@@ -3,26 +3,31 @@ services:
     name: smart-restaurant
     env: python
     plan: free
-    buildCommand: "./build.sh"
+    region: singapore        # Closest to India
+    buildCommand: "chmod +x build.sh && ./build.sh"
     startCommand: "daphne -b 0.0.0.0 -p $PORT restaurant_project.asgi:application"
+    healthCheckPath: /menu/
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
       - key: DEBUG
         value: "False"
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
         value: "smart-restaurant.onrender.com"
-      - key: RAZORPAY_KEY_ID
-        sync: false
-      - key: RAZORPAY_KEY_SECRET
-        sync: false
+      - key: BASE_URL
+        value: "https://smart-restaurant.onrender.com"
       - key: DATABASE_URL
         fromDatabase:
           name: smart-restaurant-db
           property: connectionString
-      - key: BASE_URL
-        value: "https://smart-restaurant.onrender.com"
+      - key: RAZORPAY_KEY_ID
+        sync: false          # You'll set this manually in Render dashboard
+      - key: RAZORPAY_KEY_SECRET
+        sync: false          # You'll set this manually in Render dashboard
 
 databases:
   - name: smart-restaurant-db
     plan: free
+    region: singapore
