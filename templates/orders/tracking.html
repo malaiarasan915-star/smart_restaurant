@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Track Order #{{ order.id }} - Smart Dine{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+  <div class="col-md-8 col-lg-7">
+    <!-- Back to Menu button -->
+    <a href="{% url 'menu:list' %}" class="btn btn-link text-decoration-none text-muted mb-3 p-0">
+      <i class="bi bi-arrow-left-short fs-4 align-middle"></i> Back to Menu
+    </a>
+
+    <!-- Main Stepper Widget (Mounted via React) -->
+    <div id="order-tracker-root" class="mb-4"
+         data-order-id="{{ order.id }}"
+         data-status="{{ order.status }}">
+      <!-- Loading Fallback -->
+      <div class="card card-premium p-4 border-0 text-center shadow-sm">
+        <div class="spinner-border text-primary mx-auto my-3" role="status"></div>
+        <p class="text-muted">Connecting to live tracking server...</p>
+      </div>
+    </div>
+
+    <!-- Order Summary Details Card -->
+    <div class="card card-premium border-0 p-4 shadow-sm mb-4">
+      <h5 class="fw-bold mb-3 border-bottom pb-2 text-dark">Order Items Summary</h5>
+      <div class="list-group list-group-flush mb-3">
+        {% for item in order.items.all %}
+          <div class="list-group-item px-0 py-2.5 d-flex justify-content-between align-items-center border-0 border-bottom border-light">
+            <div>
+              <span class="fw-semibold text-dark">{{ item.quantity }} ×</span>
+              <span class="text-muted">{{ item.dish.name }}</span>
+              {% if item.customization %}
+                <small class="d-block text-warning" style="font-size: 11px;"><i class="bi bi-info-circle"></i> {{ item.customization }}</small>
+              {% endif %}
+            </div>
+            <span class="fw-bold text-dark">₹{{ item.subtotal }}</span>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small">Estimated Prep Time:</span>
+        <span class="fw-medium text-dark">~{{ estimated_time }} minutes</span>
+      </div>
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small">Payment Method:</span>
+        <span class="badge bg-light text-dark text-capitalize px-3 py-1.5">{{ order.payment_method }}</span>
+      </div>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-muted small">Payment Status:</span>
+        <span class="badge {% if order.payment_status == 'paid' %}bg-success{% else %}bg-warning text-dark{% endif %} px-3 py-1.5 text-capitalize">
+          {{ order.payment_status }}
+        </span>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center border-top pt-3">
+        <h5 class="fw-bold text-dark mb-0">Total Amount:</h5>
+        <h4 class="fw-bold text-dark mb-0">₹{{ order.total_amount }}</h4>
+      </div>
+    </div>
+
+    <!-- Review Rating Section (Shows only when order is Delivered) -->
+    {% if order.status == 'delivered' %}
+      <div class="card card-premium border-0 p-4 shadow-sm bg-dark text-white mb-4">
+        <h5 class="font-playfair fw-bold text-warning mb-2"><i class="bi bi-star-fill me-1"></i> Rate Your Experience</h5>
+        <p class="small text-white-50">How was the food and dining experience today?</p>
+        
+        <form method="post" action="{% url 'orders:review' order.id %}">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label text-white-50 small mb-2">Select Rating</label>
+            <div class="d-flex gap-3">
+              {% for i in "12345" %}
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="radio" name="rating" id="rate-{{ i }}" value="{{ i }}" {% if order.review.rating == i|add:0 %}checked{% endif %}>
+                  <label class="form-check-label fw-bold text-warning" for="rate-{{ i }}">{{ i }} <i class="bi bi-star-fill"></i></label>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <label for="feedback" class="form-label text-white-50 small">Your Comments</label>
+            <textarea name="feedback" id="feedback" rows="2" class="form-control bg-secondary bg-opacity-25 border-0 text-white" placeholder="Tell us what you liked or how we can improve...">{{ order.review.feedback }}</textarea>
+          </div>
+
+          <button type="submit" class="btn btn-warning w-100 fw-bold text-dark py-2.5">
+            Submit Feedback
+          </button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- OrderTracker Script -->
+<script type="text/babel" src="{% static 'js/OrderTracker.js' %}"></script>
+{% endblock %}

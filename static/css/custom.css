@@ -1,0 +1,146 @@
+/* custom.css - Premium Smart Dine Styling */
+
+/* Google Fonts Setup */
+body {
+    font-family: 'Outfit', sans-serif;
+    color: #2b2b2b;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.font-playfair {
+    font-family: 'Playfair Display', serif;
+}
+
+/* Glassmorphism & Cards */
+.card-premium {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(224, 224, 224, 0.6);
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+    transition: transform 0.3s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.3s ease;
+}
+
+.card-premium:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+}
+
+/* Rounded pills & badges */
+.badge-veg {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+
+.badge-nonveg {
+    background-color: #ffebee;
+    color: #c62828;
+    border: 1px solid #ffcdd2;
+}
+
+/* Stepper Steppers */
+.step-dot {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+/* Typography, headers & buttons */
+.title-gradient {
+    background: linear-gradient(135deg, #111 0%, #444 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #2b2d42 0%, #1d1e2c 100%);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 500;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #1d1e2c 0%, #000 100%);
+}
+
+.btn-warning {
+    background: #ffb703;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-weight: 600;
+}
+
+.btn-warning:hover {
+    background: #fb8500;
+}
+
+.category-tab {
+    font-weight: 500;
+    color: #495057;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 20px;
+    padding: 8px 18px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.category-tab.active, .category-tab:hover {
+    background-color: #ffb703;
+    color: #023047;
+    border-color: #ffb703;
+}
+
+/* Admin Dashboard layout */
+.admin-sidebar {
+    background: #1d1e2c;
+    min-height: calc(100vh - 72px);
+    color: #fff;
+}
+
+.admin-sidebar .nav-link {
+    color: rgba(255,255,255,0.7);
+    border-radius: 8px;
+    margin: 4px 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.admin-sidebar .nav-link:hover, .admin-sidebar .nav-link.active {
+    background: rgba(255,255,255,0.1);
+    color: #ffb703;
+}
+
+/* Fixed sticky bottom cart bar for mobile view */
+.sticky-mobile-cart {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    background: #fff;
+    border-top: 1px solid #e0e0e0;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.1);
+    padding: 12px 16px;
+}
+
+/* Urgency flags for kitchen */
+.border-success { border-left: 6px solid #2e7d32 !important; }
+.border-warning { border-left: 6px solid #ffb703 !important; }
+.border-danger { border-left: 6px solid #c62828 !important; }
+
+.bg-success.bg-opacity-10 { background-color: rgba(46, 125, 50, 0.08) !important; }
+.bg-warning.bg-opacity-10 { background-color: rgba(255, 183, 3, 0.08) !important; }
+.bg-danger.bg-opacity-10 { background-color: rgba(198, 40, 40, 0.08) !important; }

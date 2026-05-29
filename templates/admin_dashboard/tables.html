@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Table QR Management - Smart Dine{% endblock %}
+
+{% block content %}
+<div class="row g-0" style="margin-top: -24px; margin-bottom: -24px;">
+  <!-- Sidebar -->
+  <div class="col-md-3 col-lg-2 admin-sidebar d-flex flex-column py-4">
+    <div class="px-4 mb-4 text-center text-md-start">
+      <h5 class="fw-bold text-white mb-0"><i class="bi bi-shield-lock-fill text-warning me-1"></i> Admin Panel</h5>
+      <small class="text-white-50">Control Center</small>
+    </div>
+    
+    <nav class="nav flex-column mb-auto">
+      <a class="nav-link" href="{% url 'admin_dashboard:home' %}">
+        <i class="bi bi-speedometer2"></i> Live Orders
+      </a>
+      <a class="nav-link" href="{% url 'admin_dashboard:menu' %}">
+        <i class="bi bi-journal-richtext"></i> Manage Menu
+      </a>
+      <a class="nav-link" href="{% url 'admin_dashboard:analytics' %}">
+        <i class="bi bi-bar-chart-line"></i> Analytics
+      </a>
+      <a class="nav-link active" href="{% url 'admin_dashboard:tables' %}">
+        <i class="bi bi-qr-code"></i> Table QRs
+      </a>
+    </nav>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="col-md-9 col-lg-10 p-4 bg-light" style="min-height: 80vh;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="font-playfair fw-bold mb-0 text-dark">Table QR Code Manager</h2>
+    </div>
+
+    <!-- Tables grid -->
+    <div class="row g-3">
+      {% for number in tables %}
+        <div class="col-sm-6 col-md-4 col-lg-3">
+          <div class="card card-premium border-0 p-3 shadow-sm bg-white text-center">
+            <span class="badge bg-dark rounded-pill mx-auto mb-2 px-3 py-2 fw-semibold">Table {{ number }}</span>
+            
+            <!-- QR code image preview -->
+            <div class="mx-auto my-3 d-flex align-items-center justify-content-center border rounded-3 p-2 bg-light" style="width: 120px; height: 120px;">
+              <img src="/media/qrcodes/table_{{ number }}.png" class="w-100 h-100 object-fit-contain" alt="QR" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+              <div class="text-muted small" style="display: none;">
+                <i class="bi bi-qr-code fs-2 d-block mb-1"></i>
+                Not Generated
+              </div>
+            </div>
+            
+            <div class="d-flex flex-column gap-2 mt-2">
+              <!-- Generate QR -->
+              <form method="POST" action="{% url 'admin_dashboard:tables' %}">
+                {% csrf_token %}
+                <input type="hidden" name="table_number" value="{{ number }}">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                  <i class="bi bi-gear-wide-connected"></i> Generate QR
+                </button>
+              </form>
+              
+              <!-- Download QR -->
+              <a href="/media/qrcodes/table_{{ number }}.png" download="table_{{ number }}_qr.png" class="btn btn-outline-secondary btn-sm w-100">
+                <i class="bi bi-download"></i> Download PNG
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

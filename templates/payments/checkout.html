@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Complete Payment - Smart Dine{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+  <div class="col-md-6 col-lg-5">
+    <div class="card card-premium p-4 border-0 shadow-sm text-center">
+      <h3 class="font-playfair fw-bold mb-3 text-dark">Payment Gateway</h3>
+      <p class="text-muted">Completing payment for Order #{{ order.id }}</p>
+
+      <div class="alert alert-info py-3 mb-4 rounded-4 border-0">
+        <h5 class="fw-bold mb-1 text-dark">Total Amount</h5>
+        <span class="fs-2 fw-bold text-dark">₹{{ order.total_amount }}</span>
+      </div>
+
+      {% if "order_mock_" in razorpay_order_id %}
+        <!-- Mock Simulator Interface -->
+        <div class="bg-light p-4 rounded-4 border border-opacity-10 border-dark mb-3 text-start">
+          <h6 class="fw-bold text-dark mb-2"><i class="bi bi-cpu text-warning me-1"></i> Sandbox Test Mode</h6>
+          <p class="small text-muted mb-3">You are in local developer mode with mock/dummy keys. You can simulate a successful Razorpay payment below.</p>
+          
+          <form method="POST" action="{{ callback_url }}">
+            {% csrf_token %}
+            <input type="hidden" name="razorpay_order_id" value="{{ razorpay_order_id }}">
+            <input type="hidden" name="razorpay_payment_id" value="pay_mock_12345abcde">
+            <input type="hidden" name="razorpay_signature" value="sig_mock_12345abcde">
+            <button type="submit" class="btn btn-success w-100 py-2.5 fw-bold text-white rounded-3">
+              Simulate Successful Payment
+            </button>
+          </form>
+        </div>
+      {% else %}
+        <!-- Real Razorpay Form Trigger -->
+        <div class="py-3">
+          <div class="spinner-border text-warning mb-3" role="status"></div>
+          <p class="text-muted mb-4">Redirecting to Razorpay checkout gateway...</p>
+          <button id="rzp-button" class="btn btn-warning w-100 py-3 fw-bold text-dark rounded-3 shadow-sm">
+            Open Razorpay Checkout
+          </button>
+        </div>
+        
+        <form id="razorpay-success-form" method="POST" action="{{ callback_url }}">
+          {% csrf_token %}
+          <input type="hidden" name="razorpay_order_id" id="form-order-id">
+          <input type="hidden" name="razorpay_payment_id" id="form-payment-id">
+          <input type="hidden" name="razorpay_signature" id="form-signature">
+        </form>
+      {% endif %}
+      
+      <a href="{% url 'orders:cart' %}" class="btn btn-link text-decoration-none text-muted mt-2">
+        Cancel & Go Back
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if "order_mock_" not in razorpay_order_id %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+  var options = {
+      "key": "{{ razorpay_key }}",
+      "amount": "{{ amount }}",
+      "currency": "INR",
+      "name": "Smart Dine Restaurant",
+      "description": "Payment for Order #{{ order.id }}",
+      "order_id": "{{ razorpay_order_id }}",
+      "handler": function (response){
+          document.getElementById('form-order-id').value = response.razorpay_order_id;
+          document.getElementById('form-payment-id').value = response.razorpay_payment_id;
+          document.getElementById('form-signature').value = response.razorpay_signature;
+          document.getElementById('razorpay-success-form').submit();
+      },
+      "prefill": {
+          "name": "{{ order.customer_name }}",
+          "contact": "{{ order.customer.phone|default:'' }}"
+      },
+      "theme": {
+          "color": "#ffb703"
+      }
+  };
+  var rzp1 = new Razorpay(options);
+  
+  // Auto open checkout box
+  window.onload = function() {
+    rzp1.open();
+  };
+  
+  document.getElementById('rzp-button').onclick = function(e){
+      rzp1.open();
+      e.preventDefault();
+  }
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sales Analytics - Smart Dine{% endblock %}
+
+{% block content %}
+<div class="row g-0" style="margin-top: -24px; margin-bottom: -24px;">
+  <!-- Sidebar -->
+  <div class="col-md-3 col-lg-2 admin-sidebar d-flex flex-column py-4">
+    <div class="px-4 mb-4 text-center text-md-start">
+      <h5 class="fw-bold text-white mb-0"><i class="bi bi-shield-lock-fill text-warning me-1"></i> Admin Panel</h5>
+      <small class="text-white-50">Control Center</small>
+    </div>
+    
+    <nav class="nav flex-column mb-auto">
+      <a class="nav-link" href="{% url 'admin_dashboard:home' %}">
+        <i class="bi bi-speedometer2"></i> Live Orders
+      </a>
+      <a class="nav-link" href="{% url 'admin_dashboard:menu' %}">
+        <i class="bi bi-journal-richtext"></i> Manage Menu
+      </a>
+      <a class="nav-link active" href="{% url 'admin_dashboard:analytics' %}">
+        <i class="bi bi-bar-chart-line"></i> Analytics
+      </a>
+      <a class="nav-link" href="{% url 'admin_dashboard:tables' %}">
+        <i class="bi bi-qr-code"></i> Table QRs
+      </a>
+    </nav>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="col-md-9 col-lg-10 p-4 bg-light" style="min-height: 80vh;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="font-playfair fw-bold mb-0 text-dark">Restaurant Analytics</h2>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+      <!-- 7-Day Revenue Trend -->
+      <div class="col-lg-7">
+        <div class="card card-premium border-0 p-4 shadow-sm bg-white h-100">
+          <h5 class="fw-bold text-dark mb-3"><i class="bi bi-graph-up-arrow text-success me-1"></i> 7-Day Revenue Trend</h5>
+          <div style="position: relative; height: 300px;">
+            <canvas id="revenueChart"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Order Status Distribution -->
+      <div class="col-lg-5">
+        <div class="card card-premium border-0 p-4 shadow-sm bg-white h-100">
+          <h5 class="fw-bold text-dark mb-3"><i class="bi bi-pie-chart-fill text-warning me-1"></i> Status Distribution</h5>
+          <div style="position: relative; height: 300px;">
+            <canvas id="statusChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Dishes Row -->
+    <div class="row g-4">
+      <div class="col-12">
+        <div class="card card-premium border-0 p-4 shadow-sm bg-white">
+          <h5 class="fw-bold text-dark mb-3"><i class="bi bi-award-fill text-warning me-1"></i> Top 5 Dishes by Sales Volume</h5>
+          <div style="position: relative; height: 280px;">
+            <canvas id="topDishesChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Load Chart.js from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+  // 1. Daily Revenue Chart
+  const revCtx = document.getElementById('revenueChart').getContext('2d');
+  new Chart(revCtx, {
+    type: 'bar',
+    data: {
+      labels: {{ chart_days|safe }},
+      datasets: [{
+        label: 'Revenue (₹)',
+        data: {{ chart_revenue|safe }},
+        backgroundColor: 'rgba(46, 125, 50, 0.65)',
+        borderColor: '#2e7d32',
+        borderWidth: 2,
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // 2. Order Status Chart
+  const statusCtx = document.getElementById('statusChart').getContext('2d');
+  new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+      labels: {{ status_labels|safe }},
+      datasets: [{
+        data: {{ status_values|safe }},
+        backgroundColor: [
+          '#ffb703', // pending / yellow
+          '#219ebc', // confirmed / blue
+          '#fb8500', // preparing / orange
+          '#8ecae6', // ready / light blue
+          '#2e7d32', // delivered / green
+          '#c62828'  // cancelled / red
+        ],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' }
+      }
+    }
+  });
+
+  // 3. Top Dishes Horizontal Bar Chart
+  const topCtx = document.getElementById('topDishesChart').getContext('2d');
+  new Chart(topCtx, {
+    type: 'bar',
+    data: {
+      labels: {{ top_dish_names|safe }},
+      datasets: [{
+        label: 'Units Sold',
+        data: {{ top_dish_qtys|safe }},
+        backgroundColor: 'rgba(251, 133, 0, 0.7)',
+        borderColor: '#fb8500',
+        borderWidth: 2,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+</script>
+{% endblock %}

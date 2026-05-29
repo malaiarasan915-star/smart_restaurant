@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load menu_extras %}
+
+{% block title %}Menu - Smart Dine{% endblock %}
+
+{% block content %}
+<div class="row">
+  <!-- Left Side: Menu Items -->
+  <div class="col-lg-8">
+    <!-- Hero Banner -->
+    <div class="card card-premium p-4 border-0 mb-4 text-center bg-dark text-white position-relative overflow-hidden" style="min-height: 180px;">
+      <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: linear-gradient(135deg, rgba(2, 48, 71, 0.9) 0%, rgba(29, 30, 44, 0.9) 100%), url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80'); background-size: cover; background-position: center; z-index: 1;"></div>
+      <div class="position-relative" style="z-index: 2; margin-top: 15px;">
+        <h1 class="font-playfair fw-bold text-warning mb-2">Exquisite Dining Made Simple</h1>
+        <p class="lead text-white-50">Contactless table ordering at your fingertips</p>
+        {% if current_table %}
+          <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-semibold"><i class="bi bi-hash"></i> Dining at Table {{ current_table }}</span>
+        {% else %}
+          <span class="badge bg-danger px-3 py-2 rounded-pill fw-semibold"><i class="bi bi-exclamation-triangle"></i> Guest Ordering (Table not set)</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Category Tabs Navigation -->
+    <div class="d-flex overflow-x-auto gap-2 pb-3 mb-4 scrollbar-hidden">
+      <button class="category-tab active" data-category-target="all">
+        <i class="bi bi-grid-fill me-1"></i> All Items
+      </button>
+      {% for category in categories %}
+        {% if category.dishes.count > 0 %}
+          <button class="category-tab" data-category-target="cat-{{ category.id }}">
+            <i class="bi {{ category.icon|default:'bi-egg-fried' }} me-1"></i> {{ category.name }}
+          </button>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- Dish Card Grids grouped by Category -->
+    {% for category in categories %}
+      {% if category.dishes.count > 0 %}
+        <div class="category-section mb-5" id="cat-{{ category.id }}">
+          <h3 class="font-playfair fw-bold mb-3 border-bottom pb-2 text-dark">
+            <i class="bi {{ category.icon|default:'bi-egg-fried' }} text-warning me-2"></i> {{ category.name }}
+          </h3>
+          <div class="row g-4">
+            {% for dish in category.dishes.all %}
+              <div class="col-md-6">
+                <div class="card card-premium h-100 border-0 shadow-sm overflow-hidden d-flex flex-row p-3">
+                  <!-- Dish Image -->
+                  <div class="flex-shrink-0" style="width: 110px; height: 110px;">
+                    {% if dish.image %}
+                      <img src="{{ dish.image.url }}" class="w-100 h-100 object-fit-cover rounded-4" alt="{{ dish.name }}">
+                    {% else %}
+                      <div class="w-100 h-100 bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center rounded-4">
+                        <i class="bi bi-image text-muted fs-3"></i>
+                      </div>
+                    {% endif %}
+                  </div>
+                  <!-- Dish Body -->
+                  <div class="flex-grow-1 ms-3 d-flex flex-column justify-content-between">
+                    <div>
+                      <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="fw-bold mb-1">
+                          <a href="{% url 'menu:detail' dish.id %}" class="text-decoration-none text-dark">{{ dish.name }}</a>
+                        </h5>
+                        {% if dish.is_vegetarian %}
+                          <span class="badge badge-veg rounded-pill" style="font-size: 10px;"><i class="bi bi-circle-fill" style="font-size: 8px;"></i> Veg</span>
+                        {% else %}
+                          <span class="badge badge-nonveg rounded-pill" style="font-size: 10px;"><i class="bi bi-triangle-fill" style="font-size: 8px;"></i> Non-Veg</span>
+                        {% endif %}
+                      </div>
+                      <p class="text-muted small mb-2 text-truncate-2" style="font-size: 13px;">{{ dish.description }}</p>
+                    </div>
+                    
+                    <div class="d-flex align-items-center justify-content-between">
+                      <span class="fw-bold fs-5 text-dark">₹{{ dish.price }}</span>
+                      <!-- Mount Point for React CartButton -->
+                      <div style="width: 100px;" data-cart-button data-dish-id="{{ dish.id }}" data-dish-name="{{ dish.name }}"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <!-- Right Side: Sidebar Cart (Desktop only) -->
+  <div class="col-lg-4 d-none d-lg-block">
+    <div class="card card-premium border-0 shadow-sm p-4 sticky-top" style="top: 90px; z-index: 10;">
+      <h4 class="font-playfair fw-bold mb-3 border-bottom pb-2 d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-bag-heart text-warning me-2"></i> Your Order</span>
+        <span class="badge bg-dark rounded-pill" id="cart-sidebar-count">
+          {{ request.session.cart|length|default:0 }}
+        </span>
+      </h4>
+      
+      <div id="cart-sidebar-items" class="mb-4" style="max-height: 350px; overflow-y: auto;">
+        {% if request.session.cart %}
+          <div class="list-group list-group-flush">
+            {% for id, item in request.session.cart.items %}
+              <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-start border-0 border-bottom border-light">
+                <div>
+                  <h6 class="fw-semibold mb-0" style="font-size:14px;">{{ item.name }}</h6>
+                  <small class="text-muted">₹{{ item.price }} x {{ item.quantity }}</small>
+                </div>
+                <span class="fw-bold text-dark" style="font-size:14px;">₹{{ item.price|add:0|mul:item.quantity|default:"?" }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted">
+            <i class="bi bi-cart3 fs-1 d-block mb-2 text-black-50"></i>
+            Your order cart is empty.
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="border-top pt-3">
+        <a href="{% url 'orders:cart' %}" class="btn btn-warning w-100 py-2.5 fw-bold text-dark">
+          <i class="bi bi-cart-check-fill me-1"></i> Review Cart & Checkout
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile Sticky Bottom Floating Action Bar -->
+<div class="sticky-mobile-cart d-lg-none d-flex align-items-center justify-content-between">
+  <div>
+    <div class="fw-semibold small text-muted">Total Cart Items</div>
+    <span class="fw-bold fs-5 text-dark" id="cart-mobile-badge">{{ request.session.cart|length|default:0 }} items</span>
+  </div>
+  <a href="{% url 'orders:cart' %}" class="btn btn-warning px-4 py-2 fw-bold text-dark">
+    View Cart <i class="bi bi-arrow-right-short fs-5 align-middle"></i>
+  </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Mount React CartButtons -->
+<script type="text/babel" src="{% static 'js/CartButton.js' %}"></script>
+<script>
+  // Simple JS Category Tab Filter
+  document.querySelectorAll('[data-category-target]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      // Toggle Active Tab
+      document.querySelectorAll('[data-category-target]').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      const target = tab.dataset.categoryTarget;
+      const sections = document.querySelectorAll('.category-section');
+      
+      if (target === 'all') {
+        sections.forEach(s => s.style.display = 'block');
+      } else {
+        sections.forEach(s => {
+          if (s.id === target) {
+            s.style.display = 'block';
+          } else {
+            s.style.display = 'none';
+          }
+        });
+      }
+    });
+  });
+</script>
+{% endblock %}

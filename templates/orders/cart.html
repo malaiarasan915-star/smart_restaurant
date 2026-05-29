@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Checkout - Smart Dine{% endblock %}
+
+{% block content %}
+<div class="row py-4">
+  <!-- Left Column: Cart Items List -->
+  <div class="col-lg-8 mb-4">
+    <div class="card card-premium p-4 border-0 shadow-sm">
+      <h3 class="font-playfair fw-bold mb-4 text-dark"><i class="bi bi-cart3 text-warning me-2"></i> Review Your Order</h3>
+
+      {% if cart_items %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th scope="col" style="border-radius: 8px 0 0 8px;">Dish</th>
+                <th scope="col" class="text-center">Quantity</th>
+                <th scope="col" class="text-end" style="border-radius: 0 8px 8px 0;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in cart_items %}
+                <tr id="cart-row-{{ item.dish.id }}">
+                  <td>
+                    <div class="d-flex align-items-center">
+                      {% if item.dish.image %}
+                        <img src="{{ item.dish.image.url }}" class="rounded-3 me-3" style="width: 60px; height: 60px; object-fit: cover;" alt="{{ item.dish.name }}">
+                      {% else %}
+                        <div class="bg-secondary bg-opacity-10 rounded-3 me-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                          <i class="bi bi-image text-muted fs-4"></i>
+                        </div>
+                      {% endif %}
+                      <div>
+                        <h6 class="fw-bold mb-0 text-dark">{{ item.dish.name }}</h6>
+                        <small class="text-muted">₹{{ item.dish.price }} each</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="text-center">
+                    <!-- Inline +/- quantity handler using plain JS -->
+                    <div class="d-flex align-items-center justify-content-center gap-2">
+                      <button class="btn btn-outline-primary btn-sm px-2 py-0" onclick="updateCartItem({{ item.dish.id }}, 'remove')">−</button>
+                      <span class="fw-bold px-2" id="qty-val-{{ item.dish.id }}">{{ item.quantity }}</span>
+                      <button class="btn btn-primary btn-sm px-2 py-0" onclick="updateCartItem({{ item.dish.id }}, 'add')">+</button>
+                    </div>
+                  </td>
+                  <td class="text-end fw-bold text-dark fs-6" id="total-val-{{ item.dish.id }}">
+                    ₹{% widthratio item.dish.price 1 item.quantity %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-cart-x fs-1 d-block mb-3 text-black-50"></i>
+          <p class="fs-5 mb-3">Your shopping cart is empty.</p>
+          <a href="{% url 'menu:list' %}" class="btn btn-warning fw-bold text-dark px-4 py-2">
+            Browse Our Menu
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right Column: Checkout Summary & Form -->
+  <div class="col-lg-4 {% if not cart_items %}d-none{% endif %}">
+    <div class="card card-premium p-4 border-0 shadow-sm position-sticky" style="top: 90px;">
+      <h4 class="font-playfair fw-bold mb-4 text-dark border-bottom pb-2">Checkout Details</h4>
+      
+      <form method="post" action="{% url 'orders:place_order' %}">
+        {% csrf_token %}
+
+        <!-- Table Number input -->
+        <div class="mb-3">
+          <label for="table_number" class="form-label fw-medium text-dark">Table Number <span class="text-danger">*</span></label>
+          {% if current_table %}
+            <input type="number" name="table_number" id="table_number" class="form-control bg-light fw-bold" value="{{ current_table }}" readonly>
+            <div class="form-text text-success" style="font-size:11px;"><i class="bi bi-check-circle-fill"></i> Table identified from QR code scanning.</div>
+          {% else %}
+            <input type="number" name="table_number" id="table_number" min="1" max="20" class="form-control" placeholder="E.g. Table 5" required>
+            <div class="form-text text-muted" style="font-size:11px;">Specify table number (1 to 20).</div>
+          {% endif %}
+        </div>
+
+        <!-- Name input for Guests -->
+        {% if not user.is_authenticated %}
+          <div class="mb-3">
+            <label for="customer_name" class="form-label fw-medium text-dark">Your Name <span class="text-danger">*</span></label>
+            <input type="text" name="customer_name" id="customer_name" class="form-control" placeholder="E.g. John Doe" required>
+          </div>
+        {% endif %}
+
+        <!-- Special instructions -->
+        <div class="mb-3">
+          <label for="special_instructions" class="form-label fw-medium text-dark">Special Requests</label>
+          <textarea name="special_instructions" id="special_instructions" class="form-control" rows="2" placeholder="E.g. Make it extra spicy, no onions, etc."></textarea>
+        </div>
+
+        <!-- Payment Method -->
+        <div class="mb-4">
+          <label class="form-label fw-medium text-dark mb-2">Payment Option</label>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="radio" name="payment_method" id="pay_cash" value="cash" checked>
+            <label class="form-check-label text-muted" for="pay_cash">
+              <i class="bi bi-cash-coin me-1"></i> Cash / Pay at Counter
+            </label>
+          </div>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="radio" name="payment_method" id="pay_card" value="card">
+            <label class="form-check-label text-muted" for="pay_card">
+              <i class="bi bi-credit-card me-1"></i> Card / Netbanking (Razorpay)
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="payment_method" id="pay_upi" value="upi">
+            <label class="form-check-label text-muted" for="pay_upi">
+              <i class="bi bi-qr-code me-1"></i> UPI QR (Razorpay)
+            </label>
+          </div>
+        </div>
+
+        <!-- Summary & Total -->
+        <div class="d-flex justify-content-between align-items-center mb-4 border-top pt-3">
+          <span class="fw-semibold text-muted">Subtotal:</span>
+          <span class="fs-4 fw-bold text-dark" id="cart-summary-total">₹{{ total_amount }}</span>
+        </div>
+
+        <button type="submit" class="btn btn-warning w-100 py-3 fw-bold text-dark rounded-3 shadow-sm">
+          Place Order <i class="bi bi-arrow-right-short fs-5 align-middle"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Plain JS handles adding/deleting from cart page directly
+  async function updateCartItem(dishId, action) {
+    const endpoint = action === 'add' ? '/orders/cart/add/' : '/orders/cart/remove/';
+    try {
+      const res = await axios.post(endpoint, { dish_id: dishId, quantity: 1 });
+      const qtyVal = res.data.item_quantity;
+      const cartCount = res.data.cart_count;
+
+      // Update navbar/mobile count badge
+      const navBadge = document.getElementById('cart-count');
+      if (navBadge) navBadge.textContent = cartCount;
+      const mobBadge = document.getElementById('cart-mobile-badge');
+      if (mobBadge) mobBadge.textContent = cartCount + " items";
+      const sidebarBadge = document.getElementById('cart-sidebar-count');
+      if (sidebarBadge) sidebarBadge.textContent = cartCount;
+
+      if (qtyVal === 0) {
+        // Remove row entirely if quantity drops to 0
+        const row = document.getElementById(`cart-row-${dishId}`);
+        if (row) row.remove();
+        
+        // If cart is empty, refresh to show empty cart banner
+        if (cartCount === 0) {
+          location.reload();
+        }
+      } else {
+        // Update label quantity
+        const label = document.getElementById(`qty-val-${dishId}`);
+        if (label) label.textContent = qtyVal;
+      }
+      
+      // Request updated cart total
+      const totalRes = await axios.get('/orders/cart/');
+      // Extract total from DOM response or recalculate
+      location.reload(); // Reloading is clean and robust to sync pricing subtotals/totals
+    } catch(err) {
+      console.error(err);
+      showBootstrapToast('Failed to update cart.', 'danger');
+    }
+  }
+</script>
+{% endblock %}

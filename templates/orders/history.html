@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Order History - Smart Dine{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+  <div class="col-md-9 col-lg-8">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <h2 class="font-playfair fw-bold mb-0 text-dark"><i class="bi bi-clock-history text-warning me-2"></i> Order History</h2>
+      <a href="{% url 'menu:list' %}" class="btn btn-warning btn-sm text-dark fw-medium"><i class="bi bi-plus-lg"></i> New Order</a>
+    </div>
+
+    {% if orders %}
+      {% for order in orders %}
+        <div class="card card-premium p-4 border-0 shadow-sm mb-4">
+          <div class="d-flex flex-wrap justify-content-between align-items-center border-bottom pb-3 mb-3 gap-2">
+            <div>
+              <h5 class="fw-bold mb-0 text-dark">Order #{{ order.id }}</h5>
+              <small class="text-muted"><i class="bi bi-calendar-event me-1"></i> {{ order.created_at|date:"M d, Y h:i A" }}</small>
+            </div>
+            
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-dark px-3 py-2 rounded-pill">Table {{ order.table_number }}</span>
+              <span class="badge 
+                {% if order.status == 'delivered' %}bg-success
+                {% elif order.status == 'cancelled' %}bg-danger
+                {% elif order.status == 'ready' %}bg-info text-dark
+                {% else %}bg-warning text-dark{% endif %} 
+                px-3 py-2 rounded-pill text-capitalize"
+              >
+                {{ order.status }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Items list -->
+          <div class="mb-3">
+            <ul class="list-unstyled mb-0">
+              {% for item in order.items.all %}
+                <li class="py-1 d-flex justify-content-between align-items-center">
+                  <span class="text-muted"><span class="fw-semibold text-dark">{{ item.quantity }} ×</span> {{ item.dish.name }}</span>
+                  <span class="fw-medium text-dark">₹{{ item.subtotal }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center border-top pt-3">
+            <div>
+              <small class="text-muted d-block">Payment Method: {{ order.payment_method|upper }}</small>
+              <small class="text-muted d-block">Payment: <span class="text-capitalize fw-semibold {% if order.payment_status == 'paid' %}text-success{% else %}text-warning{% endif %}">{{ order.payment_status }}</span></small>
+            </div>
+            
+            <div class="text-end">
+              <div class="fw-bold text-dark fs-5 mb-2">Total: ₹{{ order.total_amount }}</div>
+              <a href="{% url 'orders:tracking' order.id %}" class="btn btn-outline-primary btn-sm px-3 rounded-pill">
+                <i class="bi bi-eye"></i> Track Order
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="card card-premium border-0 p-5 text-center shadow-sm">
+        <i class="bi bi-clock-history text-muted mb-3" style="font-size: 4rem;"></i>
+        <h4 class="fw-bold text-dark">No Orders Found</h4>
+        <p class="text-muted">You haven't placed any orders yet.</p>
+        <a href="{% url 'menu:list' %}" class="btn btn-warning px-4 py-2 mt-2 fw-medium text-dark">
+          Order Food Now
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

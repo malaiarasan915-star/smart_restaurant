@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Waiter Board - Smart Dine{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="font-playfair fw-bold mb-0 text-dark"><i class="bi bi-bell-fill text-warning me-1"></i> Waiter Board</h2>
+        <p class="text-muted mb-0">Delivery board of orders cooked and ready to serve</p>
+      </div>
+      <div>
+        <span class="badge bg-dark px-3 py-2 rounded-pill"><i class="bi bi-clock"></i> Auto-refreshing</span>
+      </div>
+    </div>
+
+    <!-- React WaiterBoard mount point -->
+    <div id="waiter-board-root">
+      <div class="card card-premium p-4 border-0 text-center shadow-sm">
+        <div class="spinner-border text-primary mx-auto my-3" role="status"></div>
+        <p class="text-muted">Loading delivery list...</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Mount Waiter Board React component -->
+<script type="text/babel" src="{% static 'js/WaiterBoard.js' %}"></script>
+{% endblock %}

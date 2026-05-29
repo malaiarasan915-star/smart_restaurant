@@ -1,0 +1,11 @@
+django>=5.0
+djangorestframework
+channels
+channels-redis
+qrcode[pil]
+razorpay
+python-dotenv
+Pillow
+django-cors-headers
+whitenoise
+psycopg2-binary
