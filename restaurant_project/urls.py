@@ -19,8 +19,14 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
+from django.http import HttpResponse
+
+# Simple health check view for Render's uptime monitoring (no login required)
+def health_check(request):
+    return HttpResponse("OK", content_type="text/plain", status=200)
 
 urlpatterns = [
+    path('health/', health_check, name='health_check'),   # Render health check
     path('admin/', admin.site.urls),
     path('', RedirectView.as_view(pattern_name='menu:list', permanent=False)),
     path('accounts/', include('apps.accounts.urls')),
