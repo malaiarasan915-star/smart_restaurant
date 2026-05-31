@@ -15,24 +15,38 @@ if [ -z "$DATABASE_URL" ]; then
 fi
 echo "==> DATABASE_URL is configured (PostgreSQL)."
 
-echo "==> Checking pending migrations..."
+# Explicitly set the settings module (defensive — Render may not always inject it)
+export DJANGO_SETTINGS_MODULE=restaurant_project.settings
+
+echo "==> Testing database connection..."
+python manage.py shell -c "
+from django.db import connection
+try:
+    connection.ensure_connection()
+    print('DB connection OK:', connection.settings_dict['HOST'])
+except Exception as e:
+    print('DB CONNECTION FAILED:', e)
+    raise SystemExit(1)
+"
+
+echo "==> Checking migration status BEFORE migrate..."
 python manage.py showmigrations
 
 echo "==> Running database migrations..."
 python manage.py migrate --no-input --verbosity 2
 
-echo "==> Verifying tables were created..."
+echo "==> Verifying critical tables were created..."
 python manage.py shell -c "
 from django.db import connection
 tables = connection.introspection.table_names()
-print('Tables in DB:', tables)
-required = ['menu_category', 'menu_dish', 'accounts_customuser', 'orders_order']
+print('Tables in DB:', sorted(tables))
+required = ['menu_category', 'menu_dish', 'accounts_customuser', 'orders_order', 'orders_orderitem']
 missing = [t for t in required if t not in tables]
 if missing:
     print('MISSING TABLES:', missing)
     raise SystemExit(1)
 else:
-    print('All required tables exist.')
+    print('SUCCESS: All required tables exist.')
 "
 
 echo "==> Collecting static files..."

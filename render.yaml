@@ -11,6 +11,8 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.0"
+      - key: DJANGO_SETTINGS_MODULE
+        value: "restaurant_project.settings"
       - key: DEBUG
         value: "False"
       - key: SECRET_KEY

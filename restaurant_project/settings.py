@@ -148,11 +148,20 @@ if DEBUG:
 CORS_ALLOW_CREDENTIALS = True
 
 # ─── Security Headers (Production) ───────────────────────────────────────────
+# IMPORTANT: SECURE_SSL_REDIRECT is intentionally NOT set here.
+# On Render, the build phase runs `python manage.py migrate` with DEBUG=False.
+# If SECURE_SSL_REDIRECT=True during that phase, Django's internal HTTP client
+# gets redirect-looped, causing migrations to fail or the health check to fail.
+# Render's load balancer already enforces HTTPS externally — we only need
+# SECURE_PROXY_SSL_HEADER so Django knows requests arrived over HTTPS.
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SECURE_SSL_REDIRECT = True
+    # Do NOT set SECURE_SSL_REDIRECT = True on Render — Render's edge handles it
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # ─── Razorpay Payment Gateway ─────────────────────────────────────────────────
 RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', 'rzp_test_dummy_key_id')
