@@ -32,6 +32,52 @@ except Exception as e:
 echo "==> Checking migration status BEFORE migrate..."
 python manage.py showmigrations
 
+echo "==> Repairing any stale/fake migration records..."
+# This handles the case where django_migrations records a migration as applied
+# but the actual table was never created (e.g. from a prior failed deploy).
+# We check each critical app: if the migration is "applied" but the table is
+# missing, we mark it as unapplied so migrate recreates the table cleanly.
+python manage.py shell -c "
+from django.db import connection, ProgrammingError
+
+def table_exists(name):
+    try:
+        tables = connection.introspection.table_names()
+        return name in tables
+    except Exception:
+        return False
+
+def migration_recorded(app, name):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                \"SELECT COUNT(*) FROM django_migrations WHERE app=%s AND name=%s\",
+                [app, name]
+            )
+            return cursor.fetchone()[0] > 0
+    except Exception:
+        return False
+
+repairs = [
+    ('menu',   '0001_initial', 'menu_category'),
+    ('orders', '0001_initial', 'orders_order'),
+]
+
+for app, migration, table in repairs:
+    if migration_recorded(app, migration) and not table_exists(table):
+        print(f'REPAIR: {app}.{migration} is recorded but {table} table is missing — marking unapplied')
+        with connection.cursor() as cursor:
+            cursor.execute(
+                \"DELETE FROM django_migrations WHERE app=%s AND name=%s\",
+                [app, migration]
+            )
+        print(f'REPAIR DONE: {app}.{migration} will be re-applied by migrate')
+    elif migration_recorded(app, migration):
+        print(f'OK: {app}.{migration} applied and {table} table exists')
+    else:
+        print(f'PENDING: {app}.{migration} not yet applied')
+"
+
 echo "==> Running database migrations..."
 python manage.py migrate --no-input --verbosity 2
 
