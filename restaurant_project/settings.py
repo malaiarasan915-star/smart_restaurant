@@ -85,7 +85,9 @@ if DATABASE_URL:
         'default': dj_database_url.config(
             default=DATABASE_URL,
             conn_max_age=600,
-            ssl_require=True,
+            # ssl_require is intentionally omitted: Render's DATABASE_URL already
+            # includes sslmode=require in the connection string. Setting it here
+            # separately can cause SSL negotiation failures on the internal network.
         )
     }
 else:

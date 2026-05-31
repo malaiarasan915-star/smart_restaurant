@@ -1,12 +1,13 @@
 services:
   - type: web
-    name: smart-restaurant-5ml5          # Must match your exact Render service name
+    name: smart-restaurant              # Use the EXACT name shown in Render dashboard
     env: python
     plan: free
-    region: singapore                    # Closest to India
+    region: singapore
     buildCommand: "chmod +x build.sh && ./build.sh"
     startCommand: "daphne -b 0.0.0.0 -p $PORT restaurant_project.asgi:application"
-    healthCheckPath: /health/            # Safe public endpoint (no login required)
+    healthCheckPath: /health/
+    # NOTE: migrate runs inside build.sh with verbose output + table verification
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.0"
@@ -20,17 +21,17 @@ services:
         value: "https://smart-restaurant-5ml5.onrender.com"
       - key: DATABASE_URL
         fromDatabase:
-          name: smart-restaurant-db      # Links to the PostgreSQL service below
+          name: smart-restaurant-db
           property: connectionString
       - key: RENDER_EXTERNAL_HOSTNAME
         value: "smart-restaurant-5ml5.onrender.com"
       - key: RAZORPAY_KEY_ID
-        sync: false                      # Set manually in Render dashboard
+        sync: false
       - key: RAZORPAY_KEY_SECRET
-        sync: false                      # Set manually in Render dashboard
+        sync: false
 
 databases:
-  - name: smart-restaurant-db           # Render will CREATE this PostgreSQL instance
+  - name: smart-restaurant-db
     plan: free
     region: singapore
     databaseName: smart_restaurant

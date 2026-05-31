@@ -15,8 +15,25 @@ if [ -z "$DATABASE_URL" ]; then
 fi
 echo "==> DATABASE_URL is configured (PostgreSQL)."
 
+echo "==> Checking pending migrations..."
+python manage.py showmigrations
+
 echo "==> Running database migrations..."
-python manage.py migrate --no-input
+python manage.py migrate --no-input --verbosity 2
+
+echo "==> Verifying tables were created..."
+python manage.py shell -c "
+from django.db import connection
+tables = connection.introspection.table_names()
+print('Tables in DB:', tables)
+required = ['menu_category', 'menu_dish', 'accounts_customuser', 'orders_order']
+missing = [t for t in required if t not in tables]
+if missing:
+    print('MISSING TABLES:', missing)
+    raise SystemExit(1)
+else:
+    print('All required tables exist.')
+"
 
 echo "==> Collecting static files..."
 python manage.py collectstatic --no-input
