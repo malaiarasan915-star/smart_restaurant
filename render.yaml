@@ -4,10 +4,10 @@ services:
     env: python
     plan: free
     region: singapore
-    buildCommand: "chmod +x build.sh && ./build.sh"
-    startCommand: "daphne -b 0.0.0.0 -p $PORT restaurant_project.asgi:application"
+    buildCommand: "chmod +x build.sh start.sh && ./build.sh"
+    startCommand: "./start.sh"
     healthCheckPath: /health/
-    # NOTE: migrate runs inside build.sh with verbose output + table verification
+    # NOTE: migrate runs in start.sh on EVERY boot (idempotent, guarantees schema)
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.0"
