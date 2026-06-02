@@ -55,6 +55,31 @@ def health_check(request):
                 except Exception as epg:
                     lines.append(f"Failed to read PG settings: {epg}")
             
+            # Introspect Static Files Directory
+            import os
+            from django.conf import settings
+            lines.append("")
+            lines.append("=== Static Files Introspection ===")
+            static_root = getattr(settings, 'STATIC_ROOT', None)
+            lines.append(f"  STATIC_URL : {getattr(settings, 'STATIC_URL', None)}")
+            lines.append(f"  STATIC_ROOT: {static_root}")
+            if static_root:
+                exists = os.path.exists(static_root)
+                lines.append(f"  STATIC_ROOT exists: {exists}")
+                if exists:
+                    all_files = []
+                    for root, dirs, files in os.walk(static_root):
+                        for f in files:
+                            rel_path = os.path.relpath(os.path.join(root, f), static_root)
+                            all_files.append(rel_path)
+                    lines.append(f"  Total files in STATIC_ROOT: {len(all_files)}")
+                    lines.append("  Sample files in STATIC_ROOT (first 20):")
+                    for f in sorted(all_files)[:20]:
+                        lines.append(f"    - {f}")
+                else:
+                    lines.append("  STATIC_ROOT directory does not exist physically!")
+
+            
             # Query superusers in Database
             try:
                 cursor.execute("SELECT username, is_superuser, role FROM accounts_customuser WHERE is_superuser = True")
