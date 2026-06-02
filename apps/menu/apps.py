@@ -60,15 +60,11 @@ class MenuConfig(AppConfig):
             else:
                 print("[MenuConfig.ready] SUCCESS: All core tables verified and present.")
                 
-            # 6. Auto-seed if database is empty
+            # 6. Auto-seed / update dishes data on startup
             if not missing_after:
-                from apps.menu.models import Category
-                category_count = Category.objects.count()
-                print(f"[MenuConfig.ready] Database has {category_count} categories.")
-                if category_count == 0:
-                    print("[MenuConfig.ready] Seeding sample menu data (seed_menu)...")
-                    call_command('seed_menu')
-                    print("[MenuConfig.ready] Auto-seeding successfully completed.")
+                print("[MenuConfig.ready] Seeding/updating sample menu data (seed_menu)...")
+                call_command('seed_menu')
+                print("[MenuConfig.ready] Seeding/updating completed successfully.")
                 
                 # 7. Auto-create superuser if not exists
                 from django.contrib.auth import get_user_model
@@ -86,6 +82,7 @@ class MenuConfig(AppConfig):
                     print("[MenuConfig.ready] Superuser already exists in database.")
                 
                 # 8. Auto-collect static files if STATIC_ROOT is missing or empty
+                import os
                 static_root = getattr(settings, 'STATIC_ROOT', None)
                 if static_root and (not os.path.exists(static_root) or not os.listdir(static_root)):
                     print("[MenuConfig.ready] STATIC_ROOT is missing or empty! Running programmatic collectstatic...")
@@ -93,8 +90,7 @@ class MenuConfig(AppConfig):
                     print("[MenuConfig.ready] Programmatic collectstatic successfully completed.")
                 else:
                     print("[MenuConfig.ready] STATIC_ROOT exists and is not empty. Skipping collectstatic.")
-
                 
         except Exception as e:
-            print(f"[MenuConfig.ready] Database repair/migration/seeding/superuser failed during startup: {e}")
+            print(f"[MenuConfig.ready] Database repair/migration/seeding/superuser/static failed during startup: {e}")
 
