@@ -18,8 +18,8 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
-# Media uploads (user-uploaded files — manage separately or via cloud storage)
-media/
+media/*
+!media/dishes/
 
 # Collected static files (regenerated with collectstatic)
 staticfiles/

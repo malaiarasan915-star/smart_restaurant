@@ -172,8 +172,13 @@ urlpatterns = [
     path('waiter/', RedirectView.as_view(url='/supplier/', permanent=False)),
 ]
 
-# Always serve media files in development (required for dish images to display)
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+from django.views.static import serve
+from django.urls import re_path
+
+# Serve media files in both development and production (as we are self-hosting them)
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+]
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

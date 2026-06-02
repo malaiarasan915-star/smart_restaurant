@@ -36,6 +36,7 @@ class Command(BaseCommand):
                 'price': 180.00,
                 'is_vegetarian': True,
                 'estimated_time': 15,
+                'image': 'dishes/paneer_tikka.png',
             },
             {
                 'category': 'Biryani & Rice',
@@ -44,6 +45,7 @@ class Command(BaseCommand):
                 'price': 280.00,
                 'is_vegetarian': False,
                 'estimated_time': 25,
+                'image': 'dishes/chicken_biryani.png',
             },
             {
                 'category': 'Main Course',
@@ -52,6 +54,7 @@ class Command(BaseCommand):
                 'price': 160.00,
                 'is_vegetarian': True,
                 'estimated_time': 20,
+                'image': 'dishes/dal_makhani.png',
             },
             {
                 'category': 'Breads',
@@ -60,6 +63,7 @@ class Command(BaseCommand):
                 'price': 40.00,
                 'is_vegetarian': True,
                 'estimated_time': 10,
+                'image': 'dishes/butter_naan.png',
             },
             {
                 'category': 'Desserts',
@@ -68,6 +72,7 @@ class Command(BaseCommand):
                 'price': 80.00,
                 'is_vegetarian': True,
                 'estimated_time': 5,
+                'image': 'dishes/gulab_jamun.png',
             },
             {
                 'category': 'Beverages',
@@ -76,12 +81,13 @@ class Command(BaseCommand):
                 'price': 90.00,
                 'is_vegetarian': True,
                 'estimated_time': 5,
+                'image': 'dishes/mango_lassi.png',
             },
         ]
 
         for dish_info in dishes_data:
             cat = categories[dish_info['category']]
-            dish, created = Dish.objects.get_or_create(
+            dish, created = Dish.objects.update_or_create(
                 name=dish_info['name'],
                 defaults={
                     'category': cat,
@@ -89,9 +95,12 @@ class Command(BaseCommand):
                     'price': dish_info['price'],
                     'is_vegetarian': dish_info['is_vegetarian'],
                     'estimated_time': dish_info['estimated_time'],
+                    'image': dish_info['image'],
                 }
             )
             if created:
                 self.stdout.write(self.style.SUCCESS(f"Created dish: {dish.name}"))
+            else:
+                self.stdout.write(self.style.SUCCESS(f"Updated dish: {dish.name} (image set to {dish.image})"))
 
         self.stdout.write(self.style.SUCCESS('Successfully seeded database with menu sample.'))
