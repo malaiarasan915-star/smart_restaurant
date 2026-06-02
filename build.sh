@@ -29,54 +29,43 @@ except Exception as e:
     raise SystemExit(1)
 "
 
-echo "==> Checking migration status BEFORE migrate..."
-python manage.py showmigrations
-
-echo "==> Repairing any stale/fake migration records..."
-# This handles the case where django_migrations records a migration as applied
-# but the actual table was never created (e.g. from a prior failed deploy).
-# We check each critical app: if the migration is "applied" but the table is
-# missing, we mark it as unapplied so migrate recreates the table cleanly.
+echo "==> Detecting and repairing phantom migration records (using migrate --fake)..."
+# Raw SQL DELETEs against django_migrations are unreliable because each
+# manage.py invocation is a separate process with its own connection. If the
+# DB uses connection pooling (PgBouncer on Render) the DELETE may be rolled
+# back silently before the next process connects.
+# Django's own 'migrate --fake' is the correct, process-safe approach.
+set +e
 python manage.py shell -c "
-from django.db import connection, ProgrammingError
-
-def table_exists(name):
-    try:
-        tables = connection.introspection.table_names()
-        return name in tables
-    except Exception:
-        return False
-
-def migration_recorded(app, name):
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                \"SELECT COUNT(*) FROM django_migrations WHERE app=%s AND name=%s\",
-                [app, name]
-            )
-            return cursor.fetchone()[0] > 0
-    except Exception:
-        return False
-
-repairs = [
-    ('menu',   '0001_initial', 'menu_category'),
-    ('orders', '0001_initial', 'orders_order'),
-]
-
-for app, migration, table in repairs:
-    if migration_recorded(app, migration) and not table_exists(table):
-        print(f'REPAIR: {app}.{migration} is recorded but {table} table is missing — marking unapplied')
-        with connection.cursor() as cursor:
-            cursor.execute(
-                \"DELETE FROM django_migrations WHERE app=%s AND name=%s\",
-                [app, migration]
-            )
-        print(f'REPAIR DONE: {app}.{migration} will be re-applied by migrate')
-    elif migration_recorded(app, migration):
-        print(f'OK: {app}.{migration} applied and {table} table exists')
-    else:
-        print(f'PENDING: {app}.{migration} not yet applied')
+import sys
+from django.db import connection
+try:
+    tables = connection.introspection.table_names()
+    missing = [t for t in ['menu_category', 'accounts_customuser', 'orders_order'] if t not in tables]
+    if missing:
+        print('MISSING TABLES:', missing)
+        sys.exit(42)
+    print('Core tables present.')
+    sys.exit(0)
+except Exception as e:
+    print('Introspection skipped (fresh DB):', e)
+    sys.exit(0)
 "
+TABLE_STATUS=$?
+set -e
+
+if [ "$TABLE_STATUS" -eq 42 ]; then
+  echo "  Tables missing — resetting phantom migration records with --fake..."
+  python manage.py migrate orders zero --fake --no-input 2>&1 \
+      || echo "  [orders] Nothing to unapply"
+  python manage.py migrate menu zero --fake --no-input 2>&1 \
+      || echo "  [menu] Nothing to unapply"
+  python manage.py migrate accounts zero --fake --no-input 2>&1 \
+      || echo "  [accounts] Nothing to unapply"
+  echo "  Phantom records cleared. migrate will re-create tables."
+else
+  echo "  Core tables present — no phantom repair needed."
+fi
 
 echo "==> Running database migrations..."
 python manage.py migrate --no-input --verbosity 2
