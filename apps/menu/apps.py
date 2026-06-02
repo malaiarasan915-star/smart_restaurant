@@ -85,6 +85,16 @@ class MenuConfig(AppConfig):
                 else:
                     print("[MenuConfig.ready] Superuser already exists in database.")
                 
+                # 8. Auto-collect static files if STATIC_ROOT is missing or empty
+                static_root = getattr(settings, 'STATIC_ROOT', None)
+                if static_root and (not os.path.exists(static_root) or not os.listdir(static_root)):
+                    print("[MenuConfig.ready] STATIC_ROOT is missing or empty! Running programmatic collectstatic...")
+                    call_command('collectstatic', interactive=False, verbosity=1)
+                    print("[MenuConfig.ready] Programmatic collectstatic successfully completed.")
+                else:
+                    print("[MenuConfig.ready] STATIC_ROOT exists and is not empty. Skipping collectstatic.")
+
+                
         except Exception as e:
             print(f"[MenuConfig.ready] Database repair/migration/seeding/superuser failed during startup: {e}")
 
