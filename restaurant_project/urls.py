@@ -58,6 +58,16 @@ def health_check(request):
             # Introspect Static Files Directory
             import os
             from django.conf import settings
+            from django.core.management import call_command
+            
+            # Read startup error if exists
+            if os.path.exists("startup_error.txt"):
+                try:
+                    with open("startup_error.txt", "r") as f:
+                        lines.append(f"=== Startup Error Found ===\n  {f.read().strip()}")
+                except Exception as ef:
+                    lines.append(f"Failed to read startup_error.txt: {ef}")
+                    
             lines.append("")
             lines.append("=== Static Files Introspection ===")
             static_root = getattr(settings, 'STATIC_ROOT', None)
@@ -66,6 +76,16 @@ def health_check(request):
             if static_root:
                 exists = os.path.exists(static_root)
                 lines.append(f"  STATIC_ROOT exists: {exists}")
+                if not exists or not os.listdir(static_root):
+                    lines.append("  [Self-Healing] STATIC_ROOT is missing or empty! Running collectstatic on-demand...")
+                    try:
+                        call_command('collectstatic', interactive=False, verbosity=1)
+                        lines.append("  [Self-Healing] collectstatic successfully completed!")
+                        exists = os.path.exists(static_root)
+                        lines.append(f"  STATIC_ROOT exists after healing: {exists}")
+                    except Exception as esh:
+                        lines.append(f"  [Self-Healing] collectstatic failed: {esh}")
+                
                 if exists:
                     all_files = []
                     for root, dirs, files in os.walk(static_root):
@@ -78,6 +98,7 @@ def health_check(request):
                         lines.append(f"    - {f}")
                 else:
                     lines.append("  STATIC_ROOT directory does not exist physically!")
+
 
             
             # Query superusers in Database

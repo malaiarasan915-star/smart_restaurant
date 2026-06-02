@@ -92,5 +92,12 @@ class MenuConfig(AppConfig):
                     print("[MenuConfig.ready] STATIC_ROOT exists and is not empty. Skipping collectstatic.")
                 
         except Exception as e:
-            print(f"[MenuConfig.ready] Database repair/migration/seeding/superuser/static failed during startup: {e}")
+            error_msg = f"Database repair/migration/seeding/superuser/static failed during startup: {e}"
+            print(f"[MenuConfig.ready] {error_msg}")
+            try:
+                with open("startup_error.txt", "w") as f:
+                    f.write(error_msg + "\n")
+            except Exception as e_file:
+                print(f"[MenuConfig.ready] Failed to write startup error file: {e_file}")
+
 
