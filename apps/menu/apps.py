@@ -70,6 +70,21 @@ class MenuConfig(AppConfig):
                     call_command('seed_menu')
                     print("[MenuConfig.ready] Auto-seeding successfully completed.")
                 
+                # 7. Auto-create superuser if not exists
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                if not User.objects.filter(is_superuser=True).exists():
+                    print("[MenuConfig.ready] No superuser found! Creating default superuser...")
+                    User.objects.create_superuser(
+                        username='admin',
+                        email='admin@example.com',
+                        password='adminpassword123',
+                        role='admin'
+                    )
+                    print("[MenuConfig.ready] Default superuser 'admin' created successfully.")
+                else:
+                    print("[MenuConfig.ready] Superuser already exists in database.")
+                
         except Exception as e:
-            print(f"[MenuConfig.ready] Database repair/migration/seeding failed during startup: {e}")
+            print(f"[MenuConfig.ready] Database repair/migration/seeding/superuser failed during startup: {e}")
 

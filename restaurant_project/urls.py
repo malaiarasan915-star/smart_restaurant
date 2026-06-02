@@ -55,6 +55,18 @@ def health_check(request):
                 except Exception as epg:
                     lines.append(f"Failed to read PG settings: {epg}")
             
+            # Query superusers in Database
+            try:
+                cursor.execute("SELECT username, is_superuser, role FROM accounts_customuser WHERE is_superuser = True")
+                superusers = cursor.fetchall()
+                lines.append("")
+                lines.append(f"Superusers in Database ({len(superusers)} total):")
+                for u in superusers:
+                    lines.append(f"  - {u[0]} (role={u[2]})")
+            except Exception as esu:
+                lines.append(f"Could not read superusers: {esu}")
+
+            
             # Query migration history from django_migrations table
             try:
                 cursor.execute("SELECT app, name, applied FROM django_migrations ORDER BY id")
