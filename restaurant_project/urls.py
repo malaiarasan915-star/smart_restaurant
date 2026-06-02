@@ -29,7 +29,10 @@ from django.http import HttpResponse
 # Compare this with the migrate logs (which print the same HOST/NAME) to
 # confirm both the migration process and the app target the same database.
 def health_check(request):
+    import io
     from django.db import connection
+    from django.http import HttpResponse
+    from django.core.management import call_command
     lines = ["=== Smart Restaurant — Health Check ===", ""]
     try:
         s = connection.settings_dict
@@ -42,14 +45,17 @@ def health_check(request):
         with connection.cursor() as cursor:
             # Query current database and user in Postgres
             if 'postgresql' in s.get('ENGINE', ''):
-                cursor.execute("SELECT current_database(), current_user, current_schema(), show_config('search_path')")
-                row = cursor.fetchone()
-                lines.append(f"PG Database: {row[0]}")
-                lines.append(f"PG User    : {row[1]}")
-                lines.append(f"PG Schema  : {row[2]}")
-                lines.append(f"PG Search Path: {row[3]}")
+                try:
+                    cursor.execute("SELECT current_database(), current_user, current_schema(), current_setting('search_path')")
+                    row = cursor.fetchone()
+                    lines.append(f"PG Database: {row[0]}")
+                    lines.append(f"PG User    : {row[1]}")
+                    lines.append(f"PG Schema  : {row[2]}")
+                    lines.append(f"PG Search Path: {row[3]}")
+                except Exception as epg:
+                    lines.append(f"Failed to read PG settings: {epg}")
             
-            # Query migration history
+            # Query migration history from django_migrations table
             try:
                 cursor.execute("SELECT app, name, applied FROM django_migrations ORDER BY id")
                 migrations = cursor.fetchall()
@@ -59,12 +65,56 @@ def health_check(request):
                     lines.append(f"  [{'X' if applied else ' '}] {app} : {name}")
             except Exception as em:
                 lines.append(f"Could not read django_migrations: {em}")
+
+            # 1. Output all table names from information_schema.tables
+            try:
+                cursor.execute(
+                    "SELECT table_schema, table_name "
+                    "FROM information_schema.tables "
+                    "WHERE table_schema NOT IN ('pg_catalog', 'information_schema') "
+                    "ORDER BY table_schema, table_name"
+                )
+                info_tables = cursor.fetchall()
+                lines.append("")
+                lines.append(f"All table names from information_schema.tables ({len(info_tables)} total):")
+                for schema, name in info_tables:
+                    lines.append(f"  - {schema}.{name}")
+            except Exception as eit:
+                lines.append(f"Could not query information_schema.tables: {eit}")
+
+            # 2. Direct existence checks
+            lines.append("")
+            lines.append("=== Direct Existence Checks (information_schema.tables) ===")
+            for table in ['menu_category', 'menu_dish', 'orders_order']:
+                try:
+                    cursor.execute(
+                        "SELECT EXISTS ("
+                        "  SELECT 1 "
+                        "  FROM information_schema.tables "
+                        "  WHERE table_name = %s"
+                        ")",
+                        [table]
+                    )
+                    exists = cursor.fetchone()[0]
+                    lines.append(f"  Table '{table}' exists: {exists}")
+                except Exception as eex:
+                    lines.append(f"  Error checking '{table}': {eex}")
                 
+        # 3. Output the result of showmigrations menu, orders, accounts
+        lines.append("")
+        lines.append("=== Django showmigrations (menu, orders, accounts) ===")
+        out = io.StringIO()
+        try:
+            call_command('showmigrations', 'menu', 'orders', 'accounts', stdout=out)
+            lines.append(out.getvalue())
+        except Exception as esm:
+            lines.append(f"Failed to run showmigrations: {esm}")
+
         lines.append("")
 
-        # List all tables so we can see exactly what exists
+        # Django connection introspection check
         tables = connection.introspection.table_names()
-        lines.append(f"Tables in DB ({len(tables)} total):")
+        lines.append(f"Tables resolved by Django introspection ({len(tables)} total):")
         for t in sorted(tables):
             lines.append(f"  {'[OK]' if t in ('menu_category','menu_dish','orders_order','accounts_customuser') else '    '} {t}")
         lines.append("")
@@ -81,6 +131,7 @@ def health_check(request):
     except Exception as e:
         lines.append(f"STATUS: ERROR — {e}")
         return HttpResponse("\n".join(lines), content_type="text/plain", status=500)
+
 
 
 urlpatterns = [
