@@ -170,7 +170,27 @@ def health_check(request):
         except Exception as esm:
             lines.append(f"Failed to run showmigrations: {esm}")
 
+        # Prefetch Queryset Diagnostic
+        try:
+            from apps.menu.models import Category, Dish
+            from django.db.models import Prefetch
+            lines.append("")
+            lines.append("=== ORM Queryset & Prefetch Introspection ===")
+            cats = Category.objects.prefetch_related(
+                Prefetch('dishes', queryset=Dish.objects.filter(is_available=True))
+            ).order_by('order')
+            lines.append(f"  Categories loaded: {len(cats)}")
+            for c in cats:
+                dishes_all = list(c.dishes.all())
+                lines.append(f"  Category '{c.name}' (id={c.id}):")
+                lines.append(f"    - .dishes.count()      : {c.dishes.count()}")
+                lines.append(f"    - .dishes.all() list   : {[d.name for d in dishes_all]}")
+                lines.append(f"    - .dishes.all() count  : {len(dishes_all)}")
+        except Exception as eorm:
+            lines.append(f"  ORM introspection error: {eorm}")
+
         lines.append("")
+
 
         # Django connection introspection check
         tables = connection.introspection.table_names()
