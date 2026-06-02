@@ -24,11 +24,11 @@ from django.http import HttpResponse
 # Health check + DB diagnostic view.
 # Hitting /health/ shows:
 #   - which database HOST and NAME the RUNNING app is connected to
+#   - PG connection settings, current schema, search_path
 #   - whether menu_category actually exists in that database
 # Compare this with the migrate logs (which print the same HOST/NAME) to
 # confirm both the migration process and the app target the same database.
 def health_check(request):
-    import re
     from django.db import connection
     lines = ["=== Smart Restaurant — Health Check ===", ""]
     try:
@@ -38,6 +38,28 @@ def health_check(request):
         lines.append(f"DB Port   : {s.get('PORT', '(default)')}")
         lines.append(f"DB Name   : {s.get('NAME', 'unknown')}")
         lines.append(f"DB User   : {s.get('USER', 'unknown')}")
+        
+        with connection.cursor() as cursor:
+            # Query current database and user in Postgres
+            if 'postgresql' in s.get('ENGINE', ''):
+                cursor.execute("SELECT current_database(), current_user, current_schema(), show_config('search_path')")
+                row = cursor.fetchone()
+                lines.append(f"PG Database: {row[0]}")
+                lines.append(f"PG User    : {row[1]}")
+                lines.append(f"PG Schema  : {row[2]}")
+                lines.append(f"PG Search Path: {row[3]}")
+            
+            # Query migration history
+            try:
+                cursor.execute("SELECT app, name, applied FROM django_migrations ORDER BY id")
+                migrations = cursor.fetchall()
+                lines.append("")
+                lines.append(f"Migrations in django_migrations ({len(migrations)} total):")
+                for app, name, applied in migrations:
+                    lines.append(f"  [{'X' if applied else ' '}] {app} : {name}")
+            except Exception as em:
+                lines.append(f"Could not read django_migrations: {em}")
+                
         lines.append("")
 
         # List all tables so we can see exactly what exists
@@ -59,6 +81,7 @@ def health_check(request):
     except Exception as e:
         lines.append(f"STATUS: ERROR — {e}")
         return HttpResponse("\n".join(lines), content_type="text/plain", status=500)
+
 
 urlpatterns = [
     path('health/', health_check, name='health_check'),   # Render health check

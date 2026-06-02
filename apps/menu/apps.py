@@ -3,3 +3,63 @@ from django.apps import AppConfig
 class MenuConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'apps.menu'
+
+    def ready(self):
+        # Avoid running during management commands like makemigrations or collectstatic
+        import sys
+        if any(cmd in sys.argv for cmd in ['makemigrations', 'migrate', 'collectstatic', 'showmigrations']):
+            return
+
+        # Run startup database repair and migration
+        try:
+            from django.db import connection
+            from django.core.management import call_command
+            
+            # 1. Print diagnostic connection info
+            db_engine = connection.settings_dict.get('ENGINE', '')
+            db_host = connection.settings_dict.get('HOST', '')
+            db_name = connection.settings_dict.get('NAME', '')
+            
+            print(f"[MenuConfig.ready] Django initializing. DB Engine: {db_engine}, Host: {db_host}, Name: {db_name}")
+            
+            if 'sqlite' in db_engine:
+                print("[MenuConfig.ready] SQLite database detected. Skipping production repair/migration.")
+                return
+                
+            # 2. Check which core tables exist using introspection
+            tables = connection.introspection.table_names()
+            core_tables = ["menu_category", "accounts_customuser", "orders_order"]
+            missing = [t for t in core_tables if t not in tables]
+            
+            print(f"[MenuConfig.ready] Existing tables ({len(tables)}): {sorted(tables)[:10]}...")
+            print(f"[MenuConfig.ready] Missing core tables: {missing}")
+            
+            # 3. If tables are missing, delete stale django_migrations records
+            if missing:
+                print("[MenuConfig.ready] Core tables missing! Repairing django_migrations records...")
+                with connection.cursor() as cursor:
+                    # Let's delete the records
+                    try:
+                        cursor.execute(
+                            "DELETE FROM django_migrations WHERE app IN ('menu', 'orders', 'accounts')"
+                        )
+                        print(f"[MenuConfig.ready] Deleted stale migration records. Rows affected: {cursor.rowcount}")
+                    except Exception as e:
+                        print(f"[MenuConfig.ready] Error deleting stale migration records: {e}")
+            
+            # 4. Run migrate programmatically to create/verify all tables
+            print("[MenuConfig.ready] Running programmatically: manage.py migrate...")
+            call_command('migrate', interactive=False, verbosity=1)
+            print("[MenuConfig.ready] Programmatic migration complete.")
+            
+            # 5. Verify again
+            tables_after = connection.introspection.table_names()
+            missing_after = [t for t in core_tables if t not in tables_after]
+            if missing_after:
+                print(f"[MenuConfig.ready] WARNING: Core tables still missing after migrate: {missing_after}")
+            else:
+                print("[MenuConfig.ready] SUCCESS: All core tables verified and present.")
+                
+        except Exception as e:
+            print(f"[MenuConfig.ready] Database repair/migration failed during startup: {e}")
+
