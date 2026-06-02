@@ -10,6 +10,13 @@ class MenuConfig(AppConfig):
         if any(cmd in sys.argv for cmd in ['makemigrations', 'migrate', 'collectstatic', 'showmigrations']):
             return
 
+        import os
+        if os.path.exists("startup_error.txt"):
+            try:
+                os.remove("startup_error.txt")
+            except Exception:
+                pass
+
         # Run startup database repair and migration
         try:
             from django.db import connection
@@ -83,6 +90,7 @@ class MenuConfig(AppConfig):
                 
                 # 8. Auto-collect static files if STATIC_ROOT is missing or empty
                 import os
+                from django.conf import settings
                 static_root = getattr(settings, 'STATIC_ROOT', None)
                 if static_root and (not os.path.exists(static_root) or not os.listdir(static_root)):
                     print("[MenuConfig.ready] STATIC_ROOT is missing or empty! Running programmatic collectstatic...")
