@@ -60,6 +60,16 @@ class MenuConfig(AppConfig):
             else:
                 print("[MenuConfig.ready] SUCCESS: All core tables verified and present.")
                 
+            # 6. Auto-seed if database is empty
+            if not missing_after:
+                from apps.menu.models import Category
+                category_count = Category.objects.count()
+                print(f"[MenuConfig.ready] Database has {category_count} categories.")
+                if category_count == 0:
+                    print("[MenuConfig.ready] Seeding sample menu data (seed_menu)...")
+                    call_command('seed_menu')
+                    print("[MenuConfig.ready] Auto-seeding successfully completed.")
+                
         except Exception as e:
-            print(f"[MenuConfig.ready] Database repair/migration failed during startup: {e}")
+            print(f"[MenuConfig.ready] Database repair/migration/seeding failed during startup: {e}")
 

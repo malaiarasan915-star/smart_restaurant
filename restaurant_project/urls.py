@@ -99,6 +99,29 @@ def health_check(request):
                     lines.append(f"  Table '{table}' exists: {exists}")
                 except Exception as eex:
                     lines.append(f"  Error checking '{table}': {eex}")
+            
+            # Direct count and sample rows checks
+            lines.append("")
+            lines.append("=== Table Row Counts & Samples ===")
+            for table in ['menu_category', 'menu_dish']:
+                try:
+                    cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                    count = cursor.fetchone()[0]
+                    lines.append(f"  Table '{table}' row count: {count}")
+                    
+                    cursor.execute(f"SELECT * FROM {table} LIMIT 3")
+                    cols = [desc[0] for desc in cursor.description]
+                    rows = cursor.fetchall()
+                    if rows:
+                        lines.append(f"  Sample rows from '{table}':")
+                        for row in rows:
+                            # Safely convert Decimal or other complex types to string for presentation
+                            str_row = {k: str(v) for k, v in zip(cols, row)}
+                            lines.append(f"    {str_row}")
+                    else:
+                        lines.append(f"    (No rows present in '{table}')")
+                except Exception as ec:
+                    lines.append(f"  Error checking '{table}' counts/samples: {ec}")
                 
         # 3. Output the result of showmigrations menu, orders, accounts
         lines.append("")
